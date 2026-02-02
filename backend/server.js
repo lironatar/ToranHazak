@@ -809,7 +809,21 @@ app.delete('/api/:type/:id', (req, res) => {
     });
 });
 
+// ----------------------
+// SERVE STATIC ASSETS (Wait, this must be after API routes)
+// ----------------------
+const frontendPath = path.resolve(__dirname, '../frontend/dist');
+console.log("Serving frontend from:", frontendPath);
+
+// 1. Serve Static Files
+app.use(express.static(frontendPath));
+
+// 2. Handle React Routing (Catch-All)
+app.get(/.*/, (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
 // Start Server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });
