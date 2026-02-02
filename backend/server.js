@@ -121,9 +121,11 @@ db.serialize(() => {
     )`);
 
     // Migration: Ensure target_time exists (for old databases)
-    db.run("ALTER TABLE missions ADD COLUMN target_time TEXT", (err) => {
-        // Ignore error if column already exists
-    });
+    db.run("ALTER TABLE missions ADD COLUMN target_time TEXT", (err) => { });
+
+    // Migration: Ensure display_order exists
+    db.run("ALTER TABLE missions ADD COLUMN display_order INTEGER", (err) => { });
+    db.run("ALTER TABLE steps ADD COLUMN display_order INTEGER", (err) => { });
 
     // STEPS
     db.run(`CREATE TABLE IF NOT EXISTS steps (
@@ -435,10 +437,10 @@ app.get('/api/profiles/:id/content', (req, res) => {
     });
 
     const pMissions = new Promise((resolve, reject) => {
-        db.all(`SELECT m.* FROM missions m JOIN levels l ON m.level_id = l.id WHERE l.profile_id = ? ORDER BY m.target_time`, [profileId], (err, rows) => err ? reject(err) : resolve(rows));
+        db.all(`SELECT m.* FROM missions m JOIN levels l ON m.level_id = l.id WHERE l.profile_id = ? ORDER BY m.display_order ASC, m.target_time ASC`, [profileId], (err, rows) => err ? reject(err) : resolve(rows));
     });
     const pSteps = new Promise((resolve, reject) => {
-        db.all(`SELECT s.* FROM steps s JOIN missions m ON s.mission_id = m.id JOIN levels l ON m.level_id = l.id WHERE l.profile_id = ? ORDER BY s.display_order`, [profileId], (err, rows) => err ? reject(err) : resolve(rows));
+        db.all(`SELECT s.* FROM steps s JOIN missions m ON s.mission_id = m.id JOIN levels l ON m.level_id = l.id WHERE l.profile_id = ? ORDER BY s.display_order ASC, s.id ASC`, [profileId], (err, rows) => err ? reject(err) : resolve(rows));
     });
 
     Promise.all([pLevels, pMissions, pSteps]).then(([levels, missions, steps]) => {

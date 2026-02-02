@@ -400,9 +400,10 @@ const AdminDashboard = () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ updates })
                 });
-                // showToast('סדר המשימות נשמר'); // Optional: don't spam toasts
+                showToast('סדר המשימות נשמר');
             } catch (err) {
                 console.error("Failed to save mission order", err);
+                showToast('שגיאה בשמירת הסדר', 'error');
             }
         }, 1000);
     };
@@ -429,8 +430,10 @@ const AdminDashboard = () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ updates })
                 });
+                showToast('סדר המשימות נשמר');
             } catch (err) {
                 console.error("Failed to save step order", err);
+                showToast('שגיאה בשמירת הסדר', 'error');
             }
         }, 1000);
     };
