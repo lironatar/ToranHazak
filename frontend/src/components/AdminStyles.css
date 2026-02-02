@@ -1,0 +1,430 @@
+/* --- ADMIN LEVEL CARDS (Professional Redesign) --- */
+
+.admin-level-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-4);
+    overflow: hidden;
+    transition: all var(--transition-base);
+    box-shadow: var(--shadow-sm);
+    /* Tactical Indicator (Left Border) */
+    border-left: 4px solid transparent;
+}
+
+.admin-level-card:hover {
+    border-color: var(--accent-light);
+    border-left-color: var(--accent-color);
+    /* Green indicator on hover */
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.admin-level-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: all var(--transition-fast);
+}
+
+.admin-level-header:hover {
+    background: var(--bg-primary);
+    /* Slight gray on hover */
+}
+
+.admin-level-header.active {
+    background: var(--accent-light);
+    /* Mint background for active */
+    border-bottom: 1px solid var(--accent-color);
+}
+
+/* Level Expand Icon */
+.level-expand-icon {
+    color: var(--text-secondary);
+    transition: transform var(--transition-base);
+}
+
+.level-expand-icon.expanded {
+    transform: rotate(180deg);
+    color: var(--accent-color);
+}
+
+/* Level Title Section */
+.level-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+}
+
+.level-title {
+    font-size: var(--text-lg);
+    font-weight: 800;
+    /* Extra bold for "Army" feel */
+    color: var(--text-primary);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.5px;
+}
+
+.level-metadata {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.level-stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.level-stat-value {
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+/* Level Target Time Badge */
+.level-time-badge {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--accent-secondary);
+    white-space: nowrap;
+}
+
+/* Level Actions */
+.level-actions {
+    display: flex;
+    gap: var(--space-2);
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all var(--transition-base);
+}
+
+.admin-level-card:hover .level-actions {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Level Content (missions container) */
+.level-content {
+    padding: var(--space-4);
+    background: var(--bg-primary);
+    /* Slate background for inner content */
+    border-top: 1px solid var(--bg-tertiary);
+}
+
+.level-content-empty {
+    text-align: center;
+    padding: var(--space-10);
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Add Mission Button (inside level) */
+.add-mission-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-4);
+    margin-top: var(--space-4);
+    background: var(--bg-secondary);
+    border: 2px dashed var(--bg-tertiary);
+    /* Subtle by default */
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.add-mission-inline:hover {
+    background: var(--accent-light);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    transform: translateY(-2px);
+}
+
+/* --- BREADCRUMBS --- */
+
+.admin-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-6);
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--glass-border);
+    font-size: var(--text-sm);
+}
+
+.breadcrumb-item {
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+}
+
+.breadcrumb-item:hover {
+    color: var(--accent-primary);
+    cursor: pointer;
+}
+
+.breadcrumb-item.active {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.breadcrumb-separator {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+/* --- ENHANCED BUTTON STYLES --- */
+
+.btn-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-modern::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn-modern:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn-modern-primary {
+    background: var(--accent-primary);
+    color: #000;
+}
+
+.btn-modern-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(57, 255, 20, 0.3);
+}
+
+.btn-modern-secondary {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+}
+
+.btn-modern-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+}
+
+.btn-modern-danger {
+    background: rgba(255, 68, 68, 0.1);
+    color: var(--accent-danger);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.btn-modern-danger:hover {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: var(--accent-danger);
+}
+
+/* --- SKELETON LOADERS --- */
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(90deg,
+            var(--bg-elevated) 0%,
+            var(--bg-hover) 50%,
+            var(--bg-elevated) 100%);
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+    border-radius: var(--radius-md);
+}
+
+.skeleton-level {
+    height: 80px;
+    margin-bottom: var(--space-4);
+}
+
+.skeleton-mission {
+    height: 60px;
+    margin-bottom: var(--space-3);
+}
+
+/* --- CONFIRMATION MODAL --- */
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn var(--transition-base);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-8);
+    max-width: 500px;
+    width: 90%;
+    box-shadow: var(--shadow-xl);
+    animation: slideUp var(--transition-slow);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    margin-bottom: var(--space-4);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-6);
+    line-height: 1.6;
+}
+
+.modal-actions {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: flex-end;
+}
+
+/* --- INLINE EDITING IMPROVEMENTS --- */
+
+.inline-edit-field {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    outline: none;
+    width: 100%;
+    font-family: 'Heebo', sans-serif;
+    color: var(--text-primary);
+    padding: var(--space-2) 0;
+    transition: all var(--transition-fast);
+}
+
+.inline-edit-field:hover {
+    border-bottom-color: var(--text-tertiary);
+}
+
+.inline-edit-field:focus {
+    border-bottom-color: var(--accent-color);
+    background: var(--accent-light);
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+    border-radius: var(--radius-sm);
+}
+
+/* --- ANIMATIONS --- */
+
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-slide-in {
+    animation: slideInFromRight var(--transition-base);
+}
+
+.animate-bounce-in {
+    animation: bounceIn var(--transition-bounce);
+}
