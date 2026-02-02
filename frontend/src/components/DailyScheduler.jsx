@@ -27,6 +27,8 @@ const DailyScheduler = () => {
     const [lightboxSrc, setLightboxSrc] = useState(null);
     const navigate = useNavigate();
 
+    const [showViewerHint, setShowViewerHint] = useState(false);
+
     // 1. Fetch Schedule & Assignment Data
     const fetchScheduleData = async (guestId) => {
         try {
@@ -43,6 +45,12 @@ const DailyScheduler = () => {
                 is_me: schedData.is_me,
                 assigned_to: schedData.assigned_to
             });
+
+            // Show Viewer Hint if: Not me, Assigned to someone, Not manually dismissed
+            if (!schedData.is_me && schedData.assigned_to && !localStorage.getItem('viewer_hint_dismissed')) {
+                setShowViewerHint(true);
+            }
+
             setSchedule(schedData.schedule);
 
             // Fetch Progress (for the ASSIGNED user)
@@ -426,6 +434,33 @@ const DailyScheduler = () => {
                                 style={{ height: '100%', background: 'var(--accent-color)' }}
                             />
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Viewer Hint Modal */}
+            {showViewerHint && assignmentState.assigned_to && (
+                <div style={{ position: 'fixed', top: 0, bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div className="glass-card" style={{ maxWidth: '400px', width: '100%', padding: '32px', textAlign: 'center', border: '1px solid var(--accent-color)' }}>
+                        <div style={{ width: '64px', height: '64px', background: 'rgba(46, 204, 113, 0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '2px solid var(--accent-color)' }}>
+                            <span style={{ fontSize: '32px' }}>👁️</span>
+                        </div>
+                        <h3 style={{ marginBottom: '4px', opacity: 0.8 }}>שלום {guestData?.first_name || 'חייל'},</h3>
+                        <h3 style={{ marginBottom: '12px' }}>המשימה היום שייכת ל-{assignmentState.assigned_to.name}</h3>
+                        <p style={{ opacity: 0.8, lineHeight: '1.6', marginBottom: '24px' }}>
+                            תוכל לעקוב אחרי המשימה בזמן אמת,<br />
+                            אך לא ניתן לערוך או לסמן משימות.
+                        </p>
+                        <button
+                            className="btn-primary"
+                            onClick={() => {
+                                setShowViewerHint(false);
+                                localStorage.setItem('viewer_hint_dismissed', 'true');
+                            }}
+                            style={{ width: '100%' }}
+                        >
+                            הבנתי
+                        </button>
                     </div>
                 </div>
             )}
