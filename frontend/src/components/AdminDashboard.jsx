@@ -7,6 +7,8 @@ import AdminSchedule from './admin/AdminSchedule';
 import AdminContent from './admin/AdminContent';
 import AdminCreationModal from './admin/AdminCreationModal';
 import AdminEditUnitModal from './admin/AdminEditUnitModal';
+import { Toaster, toast } from 'sonner';
+import ConfirmationModal from './admin/ConfirmationModal';
 import AdminLevelCreationModal from './admin/AdminLevelCreationModal';
 
 const AdminDashboard = () => {
@@ -283,10 +285,47 @@ const AdminDashboard = () => {
         fetchContent(activeProfileId);
     };
 
-    const deleteItem = async (type, id) => {
-        if (!window.confirm('האם אתה בטוח?')) return;
-        await fetch(`/api/${type}/${id}`, { method: 'DELETE' });
-        fetchContent(activeProfileId);
+    // --- DELETE MODAL ---
+    const [deleteModal, setDeleteModal] = useState({
+        isOpen: false,
+        type: null,
+        id: null,
+        title: ''
+    });
+
+    const deleteItem = (type, id, title = 'פריט זה') => {
+        // Map singular to nice title if missing
+        let displayTitle = title;
+        if (title === 'פריט זה') {
+            if (type === 'level') displayTitle = 'בלוק משימות';
+            if (type === 'mission') displayTitle = 'משימה';
+            if (type === 'step') displayTitle = 'תת-משימה';
+        }
+
+        setDeleteModal({
+            isOpen: true,
+            type,
+            id,
+            title: displayTitle
+        });
+    };
+
+    const confirmDelete = async () => {
+        const { type, id } = deleteModal;
+        if (!type || !id) return;
+
+        // Ensure plural for API
+        let apiType = type;
+        if (!type.endsWith('s')) apiType = type + 's';
+
+        try {
+            await fetch(`/api/${apiType}/${id}`, { method: 'DELETE' });
+            showToast('נמחק בהצלחה');
+            fetchContent(activeProfileId);
+        } catch (err) {
+            console.error(err);
+            showToast('שגיאה במחיקה', 'error');
+        }
     };
 
     const startEditing = (type, item, e) => {
@@ -597,6 +636,15 @@ const AdminDashboard = () => {
                 createLevel={createLevel}
             />
 
+            <ConfirmationModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+                onConfirm={confirmDelete}
+                title={`מחיקת ${deleteModal.title}`}
+                message={`האם אתה בטוח שברצונך למחוק את "${deleteModal.title}"? פעולה זו אינה הפיכה.`}
+                confirmText="מחק"
+                isDestructive={true}
+            />
         </div >
     );
 };

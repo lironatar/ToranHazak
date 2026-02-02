@@ -101,9 +101,7 @@ const SortableStep = ({ step, index, handleQuickUpdate, deleteItem }) => {
             <button
                 onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm('למחוק תת-משימה?')) {
-                        deleteItem('step', step.id);
-                    }
+                    deleteItem('step', step.id, step.title);
                 }}
                 className="btn-icon"
                 style={{ color: 'var(--accent-danger)', opacity: 0.7, padding: '4px' }}

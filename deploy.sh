@@ -34,10 +34,8 @@ echo -e "${GREEN}✓ PM2 is ready${NC}"
 # 3. Setup Frontend
 echo -e "${BLUE}--- Setting up Frontend ---${NC}"
 cd frontend
-if [ ! -d "node_modules" ] || [ "$1" == "clean" ]; then
-    echo "Installing Frontend Dependencies..."
+echo "Installing Frontend Dependencies..."
     npm install
-fi
 
 echo "Building Frontend..."
 npm run build
@@ -46,10 +44,8 @@ cd ..
 # 4. Setup Backend
 echo -e "${BLUE}--- Setting up Backend ---${NC}"
 cd backend
-if [ ! -d "node_modules" ] || [ "$1" == "clean" ]; then
-    echo "Installing Backend Dependencies..."
+echo "Installing Backend Dependencies..."
     npm install
-fi
 
 # 5. Start/Restart Application
 echo -e "${BLUE}--- Starting Application ---${NC}"

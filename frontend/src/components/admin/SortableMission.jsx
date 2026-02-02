@@ -306,7 +306,7 @@ const SortableMission = ({
                                 <Edit2 size={16} />
                             </button>
                             <button
-                                onClick={(e) => { e.stopPropagation(); if (window.confirm('למחוק?')) deleteItem('mission', mission.id); }}
+                                onClick={(e) => { e.stopPropagation(); deleteItem('mission', mission.id, mission.title); }}
                                 className="btn-icon muted-action-btn"
                                 style={{ color: 'var(--accent-danger)' }}
                             >
