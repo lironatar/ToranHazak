@@ -799,6 +799,32 @@ app.put('/api/steps/:id', (req, res) => {
     });
 });
 
+// Reorder Missions
+app.post('/api/missions/reorder', (req, res) => {
+    const { updates } = req.body; // [{ id, display_order }]
+    if (!updates || !Array.isArray(updates)) return res.status(400).json({ error: "Invalid updates" });
+
+    db.serialize(() => {
+        const stmt = db.prepare("UPDATE missions SET display_order = ? WHERE id = ?");
+        updates.forEach(u => stmt.run(u.display_order, u.id));
+        stmt.finalize();
+    });
+    res.json({ success: true });
+});
+
+// Reorder Steps
+app.post('/api/steps/reorder', (req, res) => {
+    const { updates } = req.body; // [{ id, display_order }]
+    if (!updates || !Array.isArray(updates)) return res.status(400).json({ error: "Invalid updates" });
+
+    db.serialize(() => {
+        const stmt = db.prepare("UPDATE steps SET display_order = ? WHERE id = ?");
+        updates.forEach(u => stmt.run(u.display_order, u.id));
+        stmt.finalize();
+    });
+    res.json({ success: true });
+});
+
 // Delete generic
 app.delete('/api/:type/:id', (req, res) => {
     const { type, id } = req.params;
