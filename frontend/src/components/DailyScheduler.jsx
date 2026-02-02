@@ -288,8 +288,8 @@ const DailyScheduler = () => {
                 <Toaster richColors position="top-center" />
                 <div className="glass-card" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', padding: '32px' }}>
                     <Shield size={48} color="var(--accent-color)" style={{ marginBottom: '16px' }} />
-                    <h2 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>לאיזו גדוד אתה שייך?</h2>
-                    <p style={{ opacity: 0.7, marginBottom: '24px' }}>חפש את הגדוד שלך כדי להצטרף</p>
+                    <h2 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>לאיזה גדוד אתה שייך?</h2>
+                    <p style={{ opacity: 0.7, marginBottom: '24px' }}>ראשית חפש את הגדוד שלך כדי להצטרף</p>
                     <div style={{ position: 'relative', marginBottom: '16px' }}>
                         <Search size={18} style={{ position: 'absolute', top: '12px', right: '12px', opacity: 0.5 }} />
                         <input
