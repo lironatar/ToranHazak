@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import LandingPage from './components/LandingPage';
 import DailyScheduler from './components/DailyScheduler';
 import AdminLogin from './components/AdminLogin';
@@ -34,6 +35,8 @@ function App() {
   return (
     <Router>
       <div className="app-content">
+        <Toaster richColors position="top-center" dir="rtl" />
+
         {/* Global Theme Toggle */}
         <button
           onClick={toggleTheme}

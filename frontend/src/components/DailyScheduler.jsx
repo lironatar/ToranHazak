@@ -4,23 +4,66 @@ import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
+import { Toaster, toast } from 'sonner';
 import Lightbox from './Lightbox';
 import ScheduleTimeline from './ScheduleTimeline';
 
 const DailyScheduler = () => {
     const [schedule, setSchedule] = useState([]);
     const [completedSteps, setCompletedSteps] = useState(new Set());
-    const [completedMissions, setCompletedMissions] = useState(new Set()); // Track completed missions (for no-step missions)
+    const [completedMissions, setCompletedMissions] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [guestStatus, setGuestStatus] = useState(null);
     const [guestData, setGuestData] = useState(null);
+
+    // Authorization & Assignment State
+    const [assignmentState, setAssignmentState] = useState({ has_assignment: null, is_me: false, assigned_to: null });
+
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
-    const [selectedUnit, setSelectedUnit] = useState(null); // For confirmation
+    const [selectedUnit, setSelectedUnit] = useState(null);
     const [showConfetti, setShowConfetti] = useState(false);
     const prevProgressRef = useRef(0);
     const [lightboxSrc, setLightboxSrc] = useState(null);
     const navigate = useNavigate();
+
+    // 1. Fetch Schedule & Assignment Data
+    const fetchScheduleData = async (guestId) => {
+        try {
+            const schedRes = await fetch(`/api/schedule/today?guest_id=${guestId}`);
+            const schedData = await schedRes.json();
+
+            if (!schedData.has_assignment) {
+                setAssignmentState({ has_assignment: false, is_me: false, assigned_to: null });
+                return;
+            }
+
+            setAssignmentState({
+                has_assignment: true,
+                is_me: schedData.is_me,
+                assigned_to: schedData.assigned_to
+            });
+            setSchedule(schedData.schedule);
+
+            // Fetch Progress (for the ASSIGNED user)
+            const targetUserId = schedData.assigned_to.id;
+            const progRes = await fetch(`/api/progress/${targetUserId}`);
+            const progData = await progRes.json();
+
+            const completedSet = new Set();
+            if (Array.isArray(progData)) {
+                progData.forEach(id => completedSet.add(id));
+            } else {
+                if (progData.steps) progData.steps.forEach(id => completedSet.add(id));
+                const missionSet = new Set();
+                if (progData.missions) progData.missions.forEach(id => missionSet.add(id));
+                setCompletedMissions(missionSet);
+            }
+            setCompletedSteps(completedSet);
+        } catch (err) {
+            console.error("Failed to load schedule", err);
+        }
+    };
 
     useEffect(() => {
         const guestId = localStorage.getItem('guest_id');
@@ -29,48 +72,36 @@ const DailyScheduler = () => {
             return;
         }
 
-        const fetchData = async () => {
+        const initFetch = async () => {
             try {
-                // Fetch Guest Details (Status)
+                // Fetch Guest Details
                 const guestRes = await fetch(`/api/guests/${guestId}`);
                 if (guestRes.ok) {
                     const data = await guestRes.json();
                     setGuestStatus(data.status || 'pending_unit_selection');
-                    setGuestData(data); // Store full data including unit info
+                    setGuestData(data);
 
-                    // If approved, fetch schedule
                     if (data.status === 'approved') {
-                        // Fetch Schedule
-                        const schedRes = await fetch('/api/schedule/today');
-                        const schedData = await schedRes.json();
-                        setSchedule(schedData);
-
-                        // Fetch Progress
-                        const progRes = await fetch(`/api/progress/${guestId}`);
-                        const progData = await progRes.json();
-
-                        const completedSet = new Set();
-                        if (Array.isArray(progData)) {
-                            // Legacy support if it returns just array (shouldn't happen with new backend but safe to keep)
-                            progData.forEach(id => completedSet.add(id));
-                        } else {
-                            if (progData.steps) progData.steps.forEach(id => completedSet.add(id));
-
-                            const missionSet = new Set();
-                            if (progData.missions) progData.missions.forEach(id => missionSet.add(id));
-                            setCompletedMissions(missionSet);
-                        }
-                        setCompletedSteps(completedSet);
+                        await fetchScheduleData(guestId);
                     }
                 }
                 setLoading(false);
             } catch (err) {
-                console.error("Failed to load data", err);
+                console.error("Init fetch failed", err);
                 setLoading(false);
             }
         };
-        fetchData();
-    }, [navigate]);
+        initFetch();
+
+        // POLLING: Refresh progress every 5 seconds (Only if approved and assigned)
+        const interval = setInterval(() => {
+            if (guestStatus === 'approved') {
+                fetchScheduleData(guestId);
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [navigate, guestStatus]);
 
     // Search Units
     useEffect(() => {
@@ -92,13 +123,11 @@ const DailyScheduler = () => {
 
     // Calculate Progress
     const totalSteps = schedule.reduce((acc, level) => {
-        // Count steps if they exist, otherwise count mission as 1 item
         return acc + (level.missions?.reduce((mAcc, mission) => {
             return mAcc + (mission.steps && mission.steps.length > 0 ? mission.steps.length : 1);
         }, 0) || 0);
     }, 0);
 
-    // Count completed items
     const completedCount = completedSteps.size + completedMissions.size;
     const progress = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
 
@@ -124,12 +153,20 @@ const DailyScheduler = () => {
             setSelectedUnit(null);
         } catch (err) {
             console.error("Join request failed", err);
-            alert("שגיאה בשליחת הבקשה");
+            toast.error("שגיאה בשליחת הבקשה"); // Also updated this alert
         }
     };
 
     const toggleCompletion = async (e, stepId) => {
         e.stopPropagation();
+        if (!assignmentState.has_assignment) return;
+
+        // Viewer Mode Check
+        if (!assignmentState.is_me) {
+            toast.error(`רק ${assignmentState.assigned_to?.name} יכול לסמן משימות!`);
+            return;
+        }
+
         const guestId = localStorage.getItem('guest_id');
         const isCompleted = !completedSteps.has(stepId);
 
@@ -157,6 +194,11 @@ const DailyScheduler = () => {
 
     const toggleMissionCompletion = async (e, mission) => {
         e.stopPropagation();
+        if (!assignmentState.is_me) {
+            toast.error(`רק ${assignmentState.assigned_to?.name} יכול לסמן משימות!`);
+            return;
+        }
+
         const guestId = localStorage.getItem('guest_id');
 
         // CASE 1: Mission has NO steps -> Toggle Mission Progress directly
@@ -176,7 +218,7 @@ const DailyScheduler = () => {
                     body: JSON.stringify({
                         guest_id: guestId,
                         item_id: mission.id,
-                        item_type: 'mission', // IMPORTANT
+                        item_type: 'mission',
                         is_completed: isCompleted
                     })
                 });
@@ -243,14 +285,15 @@ const DailyScheduler = () => {
     if (guestStatus === 'pending_unit_selection') {
         return (
             <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '60px' }}>
+                <Toaster richColors position="top-center" />
                 <div className="glass-card" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', padding: '32px' }}>
                     <Shield size={48} color="var(--accent-color)" style={{ marginBottom: '16px' }} />
-                    <h2 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>לאיזו פלוגה אתה שייך?</h2>
-                    <p style={{ opacity: 0.7, marginBottom: '24px' }}>חפש את הפלוגה שלך כדי להצטרף</p>
+                    <h2 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>לאיזו גדוד אתה שייך?</h2>
+                    <p style={{ opacity: 0.7, marginBottom: '24px' }}>חפש את הגדוד שלך כדי להצטרף</p>
                     <div style={{ position: 'relative', marginBottom: '16px' }}>
                         <Search size={18} style={{ position: 'absolute', top: '12px', right: '12px', opacity: 0.5 }} />
                         <input
-                            type="text" placeholder="חפש פלוגה (למשל: נחשון)"
+                            type="text" placeholder="חפש גדוד (למשל: נחשון)"
                             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                             style={{ paddingRight: '40px', width: '100%' }} autoFocus
                         />
@@ -268,9 +311,20 @@ const DailyScheduler = () => {
                 </div>
                 {selectedUnit && (
                     <div style={{ position: 'fixed', top: 0, bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <div className="glass-card" style={{ maxWidth: '320px', padding: '32px', textAlign: 'center' }}>
-                            <h3>האם אתה בטוח?</h3>
-                            <button className="btn-primary" onClick={handleJoinRequest} style={{ marginTop: '16px' }}>כן, שלח בקשה</button>
+                        <div className="glass-card" style={{ maxWidth: '320px', padding: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            {selectedUnit.image_url && (
+                                <img
+                                    src={selectedUnit.image_url}
+                                    alt={selectedUnit.title}
+                                    style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', marginBottom: '16px', border: '2px solid var(--accent-color)' }}
+                                />
+                            )}
+                            <h3 style={{ lineHeight: '1.4' }}>
+                                האם להצטרף ל-<br />
+                                <span style={{ fontSize: '1.4rem', color: 'var(--accent-color)' }}>{selectedUnit.title}</span>?
+                            </h3>
+                            <p style={{ opacity: 0.8, marginTop: '8px' }}>בקשתך תישלח לאישור מנהל.</p>
+                            <button className="btn-primary" onClick={handleJoinRequest} style={{ marginTop: '16px', width: '100%' }}>כן, שלח בקשה</button>
                             <button className="btn-secondary" onClick={() => setSelectedUnit(null)} style={{ marginTop: '8px' }}>ביטול</button>
                         </div>
                     </div>
@@ -297,16 +351,50 @@ const DailyScheduler = () => {
         return <div className="container" style={{ textAlign: 'center', marginTop: '50px' }}><h2>בקשתך נדחתה</h2><button className="btn-primary" onClick={() => setGuestStatus('pending_unit_selection')}>נסה שוב</button></div>;
     }
 
+    // --- RENDER: NO ASSIGNMENT ---
+    if (assignmentState.has_assignment === false) {
+        return (
+            <div className="container" style={{ textAlign: 'center', marginTop: '100px' }}>
+                <div className="glass-card" style={{ padding: '40px' }}>
+                    <Shield size={48} color="var(--accent-color)" style={{ marginBottom: '16px', opacity: 0.5 }} />
+                    <h2>אין משימות להיום</h2>
+                    <p>הפלוגה שלך לא שובצה למשימות היום.</p>
+                </div>
+            </div>
+        );
+    }
+
     // --- RENDER: SCHEDULE ---
     return (
         <div className="container" style={{ paddingBottom: '100px' }}>
             {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={300} />}
 
+            {/* VIEWER MODE BANNER */}
+            {!assignmentState.is_me && assignmentState.assigned_to && (
+                <div style={{
+                    background: 'rgba(234, 179, 8, 0.15)', // Amber tint
+                    color: '#facc15', // Bright Yellow/Amber text
+                    padding: '12px',
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                }}>
+                    <span>👁️</span>
+                    <span>הנך צופה בהתקדמות של - {assignmentState.assigned_to.name}</span>
+                </div>
+            )}
+
             <header style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '80px 1fr 80px', direction: 'rtl' }}>
                 <div style={{ justifySelf: 'start' }}><img src="/Logo-Bright.png" alt="Logo" className="theme-logo" style={{ width: '68px', height: '68px', objectFit: 'contain' }} /></div>
                 <div style={{ textAlign: 'center' }}>
                     <h2 style={{ fontSize: '1.8rem', fontWeight: '800', margin: 0 }}>לו"ז יומי</h2>
-                    {guestData?.first_name && <span style={{ opacity: 0.7 }}>{guestData.first_name}</span>}
+                    {assignmentState.assigned_to && <span style={{ opacity: 0.7 }}>{assignmentState.assigned_to.name}</span>}
                     <div style={{ fontSize: '0.85rem', opacity: 0.5 }}>{format(new Date(), 'dd/MM/yyyy')}</div>
                 </div>
                 <div style={{ justifySelf: 'end' }}>

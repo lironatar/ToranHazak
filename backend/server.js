@@ -600,49 +600,90 @@ app.post('/api/upload', (req, res) => {
     });
 });
 
-// Get Today's Schedule (NESTED: Missions -> Steps)
+// Get Today's Schedule (Strict Assignment & Shared View)
 app.get('/api/schedule/today', (req, res) => {
-    // 1. Get Levels with Profile info
-    const sqlLevels = `
-        SELECT l.*, p.title as profile_title
-        FROM levels l
-        LEFT JOIN profiles p ON l.profile_id = p.id
-        ORDER BY CASE WHEN l.target_time IS NULL OR l.target_time = '' THEN 1 ELSE 0 END, l.target_time ASC, l.id ASC
-    `;
+    const guestId = req.query.guest_id;
+    if (!guestId) return res.status(400).json({ error: "Missing guest_id" });
 
-    db.all(sqlLevels, [], (err, levels) => {
+    // 1. Get Requester's Unit
+    db.get("SELECT unit_id FROM guests WHERE id = ?", [guestId], (err, guest) => {
         if (err) return res.status(500).json({ error: err.message });
-        if (levels.length === 0) return res.json([]);
+        if (!guest || !guest.unit_id) return res.json({ has_assignment: false, reason: "User has no unit" });
 
-        // 2. Get Missions
-        const levelIds = levels.map(l => l.id).join(',');
-        const sqlMissions = `SELECT * FROM missions WHERE level_id IN (${levelIds}) ORDER BY target_time`;
-
-        db.all(sqlMissions, [], (err, missions) => {
+        // 2. Find Today's Assignment for this Unit
+        const today = new Date().toISOString().split('T')[0];
+        db.get(`
+            SELECT a.*, g.first_name, g.last_name, g.active_profile_id 
+            FROM assignments a
+            JOIN guests g ON a.guest_id = g.id
+            WHERE a.unit_id = ? AND a.assignment_date = ?
+        `, [guest.unit_id, today], (err, assignment) => {
             if (err) return res.status(500).json({ error: err.message });
 
-            // 3. Get Steps
-            const missionIds = missions.map(m => m.id).join(',');
-            const sqlSteps = missionIds ? `SELECT * FROM steps WHERE mission_id IN (${missionIds}) ORDER BY display_order` : "";
+            if (!assignment) {
+                return res.json({ has_assignment: false });
+            }
 
-            const runStepsQuery = missionIds ? new Promise((resolve, reject) => {
-                db.all(sqlSteps, [], (err, steps) => err ? reject(err) : resolve(steps));
-            }) : Promise.resolve([]);
+            // 3. Fetch Content for the ASSIGNED PROFILE
+            const profileId = assignment.active_profile_id;
+            const assignedGuestId = assignment.guest_id;
+            const assignedName = `${assignment.first_name} ${assignment.last_name}`;
 
-            runStepsQuery.then(steps => {
-                // 4. Nest Everything
-                const result = levels.map(level => {
-                    const levelMissions = missions
-                        .filter(m => m.level_id === level.id)
-                        .map(mission => ({
-                            ...mission,
-                            steps: steps.filter(s => s.mission_id === mission.id)
-                        }));
-                    return { ...level, missions: levelMissions };
+            if (!profileId) return res.json({ has_assignment: false, reason: "Assigned user has no profile" });
+
+            const sqlLevels = `
+                SELECT l.*, p.title as profile_title
+                FROM levels l
+                LEFT JOIN profiles p ON l.profile_id = p.id
+                WHERE l.profile_id = ?
+                ORDER BY CASE WHEN l.target_time IS NULL OR l.target_time = '' THEN 1 ELSE 0 END, l.target_time ASC, l.id ASC
+            `;
+
+            db.all(sqlLevels, [profileId], (err, levels) => {
+                if (err) return res.status(500).json({ error: err.message });
+                if (levels.length === 0) return res.json({
+                    has_assignment: true,
+                    assigned_to: { id: assignedGuestId, name: assignedName },
+                    is_me: (String(assignedGuestId) === String(guestId)),
+                    schedule: []
                 });
 
-                res.json(result);
-            }).catch(err => res.status(500).json({ error: err.message }));
+                // Get Missions (ORDER BY display_order fix included)
+                const levelIds = levels.map(l => l.id).join(',');
+                const sqlMissions = `SELECT * FROM missions WHERE level_id IN (${levelIds}) ORDER BY display_order ASC, target_time ASC`;
+
+                db.all(sqlMissions, [], (err, missions) => {
+                    if (err) return res.status(500).json({ error: err.message });
+
+                    // Get Steps
+                    const missionIds = missions.map(m => m.id).join(',');
+                    const sqlSteps = missionIds ? `SELECT * FROM steps WHERE mission_id IN (${missionIds}) ORDER BY display_order ASC` : "";
+
+                    const runStepsQuery = missionIds ? new Promise((resolve, reject) => {
+                        db.all(sqlSteps, [], (err, steps) => err ? reject(err) : resolve(steps));
+                    }) : Promise.resolve([]);
+
+                    runStepsQuery.then(steps => {
+                        // Nest Everything
+                        const schedule = levels.map(level => {
+                            const levelMissions = missions
+                                .filter(m => m.level_id === level.id)
+                                .map(mission => ({
+                                    ...mission,
+                                    steps: steps.filter(s => s.mission_id === mission.id)
+                                }));
+                            return { ...level, missions: levelMissions };
+                        });
+
+                        res.json({
+                            has_assignment: true,
+                            assigned_to: { id: assignedGuestId, name: assignedName },
+                            is_me: (String(assignedGuestId) === String(guestId)),
+                            schedule
+                        });
+                    }).catch(err => res.status(500).json({ error: err.message }));
+                });
+            });
         });
     });
 });
