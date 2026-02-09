@@ -170,7 +170,7 @@ const AdminSchedule = ({ activeUnitId, users }) => {
                                     <div
                                         onClick={() => setSelectedAssignment(assignment)}
                                         style={{
-                                            background: 'var(--accent-color)',
+                                            background: 'linear-gradient(145deg, var(--accent-hover), #047857)', // Darker gradient
                                             color: 'white',
                                             padding: '12px',
                                             borderRadius: '8px',
@@ -178,7 +178,8 @@ const AdminSchedule = ({ activeUnitId, users }) => {
                                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                             position: 'relative',
                                             cursor: 'pointer',
-                                            transition: 'transform 0.2s'
+                                            transition: 'transform 0.2s',
+                                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                                         }}
                                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
                                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
